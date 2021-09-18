@@ -1,27 +1,59 @@
 require 'rails_helper'
 
 RSpec.describe Project, type: :model do
-  it { is_expected.to validate_uniqueness_of(:name).scoped_to(:user_id) }
 
-  describe "late status" do
-    it "is late when the due date is past today" do
-      project = FactoryBot.create(:project, :due_yesterday)
-      expect(project).to be_late
-    end
+  #ユーザー単位では同じ名前のプロジェクトは許可しない
+  it "does not allow duplicate project names per user" do
 
-    it "is on time when the due date is today" do
-      project = FactoryBot.create(:project, :due_today)
-      expect(project).to_not be_late
-    end
+    user = User.create(
+      first_name: "Naoki",
+      last_name: "Ito",
+      email: "test@example.com",
+      password: "pasword1",
+    )
 
-    it "is on time when the due date is in the future" do
-      project = FactoryBot.create(:project, :due_tomorrow)
-      expect(project).to_not be_late
-    end
+    user.projects.create(
+      name: "duplicate name"
+    )
+
+    new_project = user.projects.build(
+      name: "duplicate name"
+    )
+
+    new_project.valid?
+
+    expect(new_project.errors[:name]).to include("has already been taken")
+
   end
 
-  it "can have many notes" do
-    project = FactoryBot.create(:project, :with_notes)
-    expect(project.notes.length).to eq 5
+  #二人のユーザーが同じ名前を使うのは許可する
+  it "allows two users to share a project name" do
+
+    user1 = User.create(
+      first_name: "Naoki",
+      last_name: "Ito",
+      email: "test1@example.com",
+      password: "pasword1",
+    )
+
+    user1.projects.create(
+      name: "same name"
+    )
+
+    user2 = User.create(
+      first_name: "Naoki",
+      last_name: "Ito",
+      email: "test2@example.com",
+      password: "pasword1",
+    )
+
+    other_project = user2.projects.create(
+      name: "same name"
+    )
+
+    expect(other_project).to be_valid
+
+
   end
+
 end
